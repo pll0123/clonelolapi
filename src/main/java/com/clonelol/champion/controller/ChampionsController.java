@@ -3,41 +3,87 @@ package com.clonelol.champion.controller;
 import com.clonelol.champion.apidto.ChampInformationDto;
 import com.clonelol.champion.apidto.DetailInfoDto;
 import com.clonelol.champion.apidto.SimpleInfoDto;
-import com.clonelol.champion.controller.dto.RotationsDto;
 import com.clonelol.champion.entity.Champion;
+import com.clonelol.champion.entity.Version;
+import com.clonelol.champion.repository.VersionRepository;
 import com.clonelol.champion.service.ChampionsService;
-import com.google.gson.Gson;
 import lombok.RequiredArgsConstructor;
+import org.springframework.boot.context.event.ApplicationReadyEvent;
+import org.springframework.context.event.EventListener;
 import org.springframework.core.ParameterizedTypeReference;
 import org.springframework.http.RequestEntity;
-import org.springframework.web.bind.annotation.GetMapping;
-import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RestController;
+import org.springframework.stereotype.Component;
 import org.springframework.web.client.RestTemplate;
 import org.springframework.web.util.UriComponentsBuilder;
 
 import java.net.URI;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.stream.Collectors;
 
 import static com.clonelol.config.ApiKeyConfiguration.*;
 
-@RestController
-@RequestMapping("/lol/api/champion")
+@Component
 @RequiredArgsConstructor
 public class ChampionsController {
 
-    private final Gson gson;
-    private final RestTemplate  restTemplate;
+    private final RestTemplate restTemplate;
     private final ChampionsService championsService;
+    private final VersionRepository versionRepository;
+    private final static List<Champion> freeChampion = new ArrayList<>();
 
-    //모든 챔피언 정보 불러오기
-    @GetMapping("/info")
-    public void getChampionList()  {
+    //서버 켜지면 버전이 최신인지 확인 후
+    @EventListener(ApplicationReadyEvent.class)
+    public void checkVersion() {
 
-        URI uri = createUriComponent(CHAMP_INFO)
+        String[] result = checkChampVersion();
+        String newVersion = result[0];
+
+        //저장된 데이터가
+        //있으면 그대로 가져오고, 없으면 최신 버전을 생성하면서 챔프 정보를 불러온다.
+        Version version = versionRepository.findById("Version")
+                .orElseGet(()-> create(newVersion));
+
+        //저장된 데이터가 있을 때,
+        //최신 버전인지 확인하고 아니라면 업데이트 한다.
+        if(!version.isLatestVersion(newVersion)){
+            updateChamp4newVersion(newVersion, version);
+        }
+
+    }
+
+    //버전데이터가 없을경우 최초 등록 메서드
+    private Version create(String newVersion) {
+        Version version = versionRepository.save(Version.builder()
+                .id("Version")
+                .latestVersion(newVersion)
+                .build());
+        getChampionList(newVersion);
+
+        return version;
+    }
+
+    //버전이 바뀔경우 기존 챔피언 정보 업데이트
+    private void updateChamp4newVersion(String newVersion, Version findVersion) {
+        findVersion.updateLatestVersion(newVersion);
+        versionRepository.save(findVersion);
+        getChampionList(newVersion);
+    }
+
+    private String[] checkChampVersion() {
+        URI uri = createUriComponent(GAME_VERSION)
                 .encode()
                 .build().toUri();
+
+        String[] result = restTemplate.getForObject(uri, String[].class);
+        return result;
+    }
+
+    private void getChampionList(String version) {
+        URI uri = createUriComponent(CHAMP_INFO)
+                .encode()
+                .buildAndExpand(version)
+                .toUri();
 
         RequestEntity<Void> build = RequestEntity.get(uri)
                 .build();
@@ -48,44 +94,27 @@ public class ChampionsController {
 
         List<Champion> entityList = champList.getNameSet()
                 .stream()
-                .map(this::searchChampDetail)
+                .map(name -> searchChampDetail(version, name))
                 .map(DetailInfoDto::convertToEntity)
                 .collect(Collectors.toList());
 
         championsService.initializeAll(entityList);
-//        getFreeChampList();    //챔피언이 최신화 되면 로테이션 값도 다시 넣어줘야 한다.
     }
 
-    //이번주 로테이션 정보 가져오기
-    @GetMapping("/rotations")
-    public String getFreeChampList() {
-        URI uri = createUriComponent(CHAMP_ROTATIONS)
-                .queryParam("api_key", DEV_KEY)
-                .encode()
-                .build().toUri();
-
-        String result = restTemplate.getForObject(uri, String.class);
-
-        RotationsDto rotationsDto = gson.fromJson(result, RotationsDto.class);
-
-        //이번주 로테이션 최신화
-        championsService.updateRotations(rotationsDto);
-
-        return null;
-    }
 
     // 각 챔피언의 세부정보 받아오는 API 호출 메서드
-    private DetailInfoDto searchChampDetail(String champName) {
+    private DetailInfoDto searchChampDetail(String version, String champName) {
         //String -> URI type 변경.
         URI url = createUriComponent(CHAMP_DETAILS)
                 .encode()
-                .buildAndExpand(champName)
+                .buildAndExpand(version, champName)
                 .toUri();
 
         RequestEntity<Void> request = RequestEntity.get(url)
                 .build();
 
-        ChampInformationDto<DetailInfoDto> infoList = restTemplate.exchange(request, new ParameterizedTypeReference<ChampInformationDto<DetailInfoDto>>() {})
+        ChampInformationDto<DetailInfoDto> infoList = restTemplate.exchange(request, new ParameterizedTypeReference<ChampInformationDto<DetailInfoDto>>() {
+                })
                 .getBody();
 
         return infoList.getValue(champName);
@@ -95,4 +124,5 @@ public class ChampionsController {
         return UriComponentsBuilder
                 .fromUriString(uri);
     }
+
 }

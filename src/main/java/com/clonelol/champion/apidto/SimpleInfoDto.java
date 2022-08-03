@@ -11,11 +11,4 @@ public class SimpleInfoDto {
     public String key;
     public String name;
 
-//    public ChampionEntity convertToChamp() {
-//        return ChampionEntitiy.builder()
-//                .id(id)
-//                .name(name)
-//                .stats(statusBuilder())
-//                .build();
-//    }
 }

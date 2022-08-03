@@ -1,15 +1,15 @@
 package com.clonelol.champion.service;
 
-import com.clonelol.champion.controller.dto.RotationsDto;
 import com.clonelol.champion.entity.Champion;
 import com.clonelol.champion.entity.ChampionStats;
 import com.clonelol.champion.repository.ChampionRepository;
+import com.clonelol.champion.repository.ChampionSkillsRepository;
 import com.clonelol.champion.repository.ChampionStatsRepository;
-import com.clonelol.champion.repository.RotationsRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.util.ArrayList;
 import java.util.List;
 
 @Service
@@ -18,7 +18,7 @@ import java.util.List;
 public class ChampionsService {
 
     private final ChampionRepository championRepository;
-    private final RotationsRepository rotationsRepository;
+    private final ChampionSkillsRepository championSkillsRepository;
     private final ChampionStatsRepository championStatsRepository;
 
     @Transactional
@@ -31,28 +31,4 @@ public class ChampionsService {
         championStatsRepository.saveAll(statsList);
     }
 
-    @Transactional
-    public void updateRotations(RotationsDto rotationsDto) {
-        rotationsRepository.findById("rotations")
-                .ifPresent(rotations -> {
-                    List<Champion> championList = rotations.getFreeChampions();
-                    for (Champion champion : championList) {
-                        champion.deleteRotations();
-                    }
-                    rotations.deleteFreeChampions();
-
-                    rotations.updateMaxLevel(rotationsDto.getMaxNewPlayerLevel());
-
-                    //로테이션 Id를 통해서 챔피언을 불러온다.
-                    //챔피언을 로테이션에 조인한다.
-                    rotationsDto.getFreeChampionIds()
-                            .stream()
-                            .map(freeId -> championRepository.findById(freeId).get())
-                            .forEach(champion -> champion.setRotations(rotations));
-
-                    rotationsRepository.save(rotations);
-                    return;
-                });
-        rotationsRepository.save(rotationsDto.convertToEntity());
-    }
 }
