@@ -1,29 +1,3 @@
-# 서버설정
-server:
-  port: 8080
-  servlet:
-    context-path: "/"
-    encoding:
-      charset: UTF-8
-
 spring:
-  #DB Setting
-  datasource:
-    driver-class-name: com.mysql.jdbc.Driver
-    url: jdbc:mysql://localhost:3306/user-jh?autoReconnect=true
-    username: root
-    password: 1234
-
-  #JPA Setting
-  jpa:
-    show-sql: true #if true, Show DB processing
-    hibernate:
-      ddl-auto: update  #DDL
-    properties:
-      hibernate:
-        format_sql: false
-        highlight_sql: true
-logging:
-  level:
-    org.hibernate.SQL: off
-    org.hibernate.type: trace
+  profiles:
+    include: mysql

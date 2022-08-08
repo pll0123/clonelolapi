@@ -16,6 +16,7 @@ import java.net.URI;
 import java.util.List;
 import java.util.stream.Collectors;
 
+import static com.clonelol.config.ApiKeyConfiguration.ENCRYPTED_SUMMONER_ID;
 import static com.clonelol.config.ApiKeyConfiguration.USER_SOLO_RANK;
 import static java.util.Objects.requireNonNull;
 
@@ -36,13 +37,32 @@ public class SummonerApi {
 
         RequestEntity<Void> requestEntity = RequestEntity.get(uri).build();
 
-        List<SummonerSimpleInfo> simpleInfoList = requireNonNull(restTemplate.exchange(requestEntity, new ParameterizedTypeReference<List<SummonerApiDto>>() {
-                }).getBody())
+
+        List<SummonerApiDto> summonerApiDtos = requireNonNull(restTemplate.exchange(requestEntity, new ParameterizedTypeReference<List<SummonerApiDto>>() {
+        }).getBody());
+
+        List<String> collect = summonerApiDtos
                 .stream()
-                .map(this::convertToEntity)
+                .map(SummonerApiDto::getSummonerId)
                 .collect(Collectors.toList());
 
-        summonerSimpleInfoRepository.saveAll(simpleInfoList);
+        for (String s : collect) {
+            URI summonerId = createUriComponent(ENCRYPTED_SUMMONER_ID)
+                    .encode()
+                    .queryParam("api_key", "RGAPI-718e4463-596c-4509-aac8-5e5851a070cb")
+                    .buildAndExpand(s)
+                    .toUri();
+            summonerApiDtos = requireNonNull(restTemplate.exchange(requestEntity, new ParameterizedTypeReference<List<SummonerApiDto>>() {
+            }).getBody());
+            System.out.println("summonerId = " + summonerApiDtos);
+        }
+
+//        List<SummonerSimpleInfo> simpleInfoList = (List<SummonerSimpleInfo>) summonerApiDtos;
+//                .stream()
+//                .map(this::convertToEntity)
+//                .collect(Collectors.toList());
+//
+//        summonerSimpleInfoRepository.saveAll(simpleInfoList);
     }
 
     private UriComponentsBuilder createUriComponent(String uri) {
@@ -50,13 +70,13 @@ public class SummonerApi {
                 .fromUriString(uri);
     }
 
-    private SummonerSimpleInfo convertToEntity(SummonerApiDto dto){
-
-        return SummonerSimpleInfo.builder()
-                .summonerId(dto.getSummonerId())
-                .queueType(dto.getQueueType())
-                .tier(dto.getTier())
-                .grade(dto.getRank())
-                .build();
-    }
+//    private SummonerSimpleInfo convertToEntity(SummonerApiDto dto){
+//
+//        return SummonerSimpleInfo.builder()
+//                .summonerId(dto.getSummonerId())
+//                .queueType(dto.getQueueType())
+//                .tier(dto.getTier())
+//                .grade(dto.getRank())
+//                .build();
+//    }
 }
