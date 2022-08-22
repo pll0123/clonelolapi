@@ -29,7 +29,7 @@ public class DetailInfoDto {
 
     public Champion convertToEntity(){
         return Champion.builder()
-                .id(key)
+                .key(key)
                 .title(title)
                 .nameKr(name)
                 .nameEn(id)

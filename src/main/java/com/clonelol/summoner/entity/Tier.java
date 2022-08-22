@@ -12,7 +12,9 @@ public enum Tier {
     DIAMOND("DIAMOND",500),
     PLATINUM("PLATINUM",400),
     GOLD("GOLD",300),
-    SILVER("SILVER",200);
+    SILVER("SILVER",200),
+    BRONZE("BRONZE",100),
+    IRON("IRON",0);
 
     private final String key;
     private final int value;

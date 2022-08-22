@@ -1,10 +1,15 @@
 package com.clonelol.champion.entity;
 
-import lombok.*;
+import lombok.Builder;
+import lombok.Getter;
+import lombok.NoArgsConstructor;
+import lombok.Setter;
 
 import javax.persistence.Entity;
+import javax.persistence.GeneratedValue;
 import javax.persistence.Id;
 
+import static javax.persistence.GenerationType.IDENTITY;
 import static lombok.AccessLevel.PROTECTED;
 
 @Entity
@@ -13,21 +18,13 @@ import static lombok.AccessLevel.PROTECTED;
 @NoArgsConstructor(access = PROTECTED)
 public class Version {
     @Id
-    private String id;
+    @GeneratedValue(strategy = IDENTITY)
+    private Long id;
 
-    private String latestVersion;
-
-    public boolean isLatestVersion(String latestVersion) {
-        return this.latestVersion.equals(latestVersion);
-    }
-
-    public void updateLatestVersion(String newVersion) {
-        this.latestVersion = newVersion;
-    }
+    private String curVersion;
 
     @Builder
-    public Version(String id, String latestVersion) {
-        this.id = id;
-        this.latestVersion = latestVersion;
+    public Version(String curVersion) {
+        this.curVersion = curVersion;
     }
 }

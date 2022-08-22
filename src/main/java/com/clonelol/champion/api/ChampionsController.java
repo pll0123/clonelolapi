@@ -1,20 +1,16 @@
 package com.clonelol.champion.api;
 
 import com.clonelol.champion.entity.Champion;
-import com.clonelol.champion.entity.Version;
 import com.clonelol.champion.repository.VersionRepository;
 import com.clonelol.champion.service.ChampionsService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.boot.context.event.ApplicationReadyEvent;
-import org.springframework.context.event.EventListener;
 import org.springframework.core.ParameterizedTypeReference;
 import org.springframework.http.MediaType;
 import org.springframework.stereotype.Component;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.reactive.function.client.WebClient;
-
 
 import java.util.ArrayList;
 import java.util.List;
@@ -35,43 +31,23 @@ public class ChampionsController {
     private final static List<Champion> freeChampion = new ArrayList<>();
 
     //서버 켜지면 버전이 최신인지 확인 후
-    @EventListener(ApplicationReadyEvent.class)
+//    @EventListener(ApplicationReadyEvent.class)
     public void checkVersion() {
 
-        String[] result = checkChampVersion();
+        String[] result = checkGameVersion();
         String newVersion = result[0];
 
-        //저장된 데이터가
-        //있으면 그대로 가져오고, 없으면 최신 버전을 생성하면서 챔프 정보를 불러온다.
-        Version version = versionRepository.findById("Version")
-                .orElseGet(() -> create(newVersion));
-
-        //저장된 데이터가 있을 때,
-        //최신 버전인지 확인하고 아니라면 업데이트 한다.
-        if (!version.isLatestVersion(newVersion)) {
-            updateChamp4newVersion(newVersion, version);
+        //버전을 검색하고 새로운 버전이면 생성
+        if (championsService.getVersion(newVersion).isEmpty()){
+            if (championsService.checkSize()){
+                championsService.deleteOldVersion();
+            }
+            championsService.createVersion(newVersion);
+            getChampionList(newVersion);
         }
-
     }
 
-    //버전데이터가 없을경우 최초 등록 메서드
-    private Version create(String newVersion) {
-        Version version = versionRepository.save(Version.builder()
-                .id("Version")
-                .latestVersion(newVersion)
-                .build());
-        getChampionList(newVersion);
-        return version;
-    }
-
-    //버전이 바뀔경우 기존 챔피언 정보 업데이트
-    private void updateChamp4newVersion(String newVersion, Version findVersion) {
-        findVersion.updateLatestVersion(newVersion);
-        versionRepository.save(findVersion);
-        getChampionList(newVersion);
-    }
-
-    private String[] checkChampVersion() {
+    private String[] checkGameVersion() {
         return webClient
                 .baseUrl(GAME_VERSION).build()
                 .get()

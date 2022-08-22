@@ -1,6 +1,5 @@
 package com.clonelol.champion.entity;
 
-import com.clonelol.summoner.entity.Ban;
 import com.clonelol.summoner.entity.MatchSummary;
 import com.clonelol.web.dto.RotationResponse;
 import lombok.Builder;
@@ -21,9 +20,11 @@ import static lombok.AccessLevel.PROTECTED;
 public class Champion {
 
     @Id
+    @GeneratedValue
     @Column(name = "champion_id")
     private Long id;
 
+    private Long key;
     private String nameEn;  //챔피언 영문명
     private String nameKr;  //챔피언 명칭(Regions에 따라 언어 다름 현재: ko_KR)
     private String title;   //챔피언 타이틀
@@ -44,8 +45,8 @@ public class Champion {
     private final List<MatchSummary> matchSummaries = new ArrayList<>();
 
     @Builder
-    public Champion(Long id, String nameEn, String nameKr, String title, String portrait, ChampionStats championStats, List<ChampionSkills> skills, List<ChampionSkins> skins) {
-        this.id = id;
+    public Champion(Long key, String nameEn, String nameKr, String title, String portrait, ChampionStats championStats, List<ChampionSkills> skills, List<ChampionSkins> skins) {
+        this.key = key;
         this.nameEn = nameEn;
         this.nameKr = nameKr;
         this.title = title;
